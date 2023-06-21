@@ -5,21 +5,24 @@ import com.example.demo.model.Parent;
 import com.example.demo.model.Transaction;
 import com.example.demo.repository.ChildRepository;
 import com.example.demo.repository.ParentRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.SQLException;
+
+@Slf4j
 @Controller
 public class TransactionService {
-    private static final Logger logger = LogManager.getLogger(TransactionService.class);
     @Autowired
     private ParentRepository parentRepository;
     @Autowired
     private ChildRepository childRepository;
 
-    @Transactional
+    @Transactional(rollbackFor = {NullPointerException.class, SQLException.class, Exception.class})
     public Transaction transactionalOnPublicMethod(Transaction transaction) {
         return actualLogic(transaction);
     }
@@ -46,16 +49,17 @@ public class TransactionService {
         try {
             if (transaction.getParent() != null) {
                 Parent resParent = parentRepository.save(transaction.getParent());
-                logger.info("Saving Parend with id: {}", resParent.getId());
+                log.info("Saving Parend with id: {}", resParent.getId());
                 resTransaction.setParent(resParent);
             }
             if (transaction.getChild() != null) {
                 Child resChild = childRepository.save(transaction.getChild());
+                log.info("Saving Child with id: {}", resChild.getId());
                 resTransaction.setChild(resChild);
             }
             Thread.sleep(3000);
         } catch (Exception e) {
-            logger.warn("Base Exception: {}", e);
+            log.warn("Base Exception: " + e);
             return new Transaction();
         }
         return resTransaction;
